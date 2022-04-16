@@ -1,5 +1,3 @@
-
-
 from __future__ import print_function
 import argparse
 import os
@@ -130,10 +128,10 @@ def flip(data):
 
 #num_class = 16
 
-matfn1 = '/home/ouc/WJJ/ACGAN_2/data/Indian_pines_corrected.mat'
+matfn1 = 'Indian_pines_corrected.mat'
 data1 = sio.loadmat(matfn1)
 X = data1['indian_pines_corrected']
-matfn2='/home/ouc/WJJ/ACGAN_2/data/Indian_pines_gt.mat'
+matfn2='Indian_pines_gt.mat'
 data2=sio.loadmat(matfn2)
 y = data2['indian_pines_gt']
 test_ratio=0.90
@@ -542,13 +540,14 @@ for epoch in range(1, opt.niter + 1):
             noise.resize_(batch_size, nz, 1, 1)
             noise.normal_(0, 1)
             noise_ = np.random.normal(0, 1, (batch_size, nz, 1, 1))
-
-            noise.resize_(batch_size, nz, 1, 1).copy_(torch.from_numpy(noise_))
+            with torch.no_grad():
+                noise.resize_(batch_size, nz, 1, 1).copy_(torch.from_numpy(noise_))
 
             #label = np.random.randint(0, nb_label, batch_size)
             label = np.full(batch_size, nb_label)
-
-            f_label.data.resize_(batch_size).copy_(torch.from_numpy(label))
+            with torch.no_grad():
+                # f_label.data.resize_(batch_size).copy_(torch.from_numpy(label))
+                f_label.resize_(batch_size).copy_(torch.from_numpy(label))
 
 
             fake = netG(noise)
