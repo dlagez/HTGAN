@@ -1,3 +1,5 @@
+### 简介：
+
 引用了这篇文章的代码，简单的整理了一下。
 
 目前准备先在公共的数据集上面运行，然后自己准备数据集训练。
@@ -29,6 +31,8 @@ fork from : `https://github.com/summitgao/HC_ADGAN`，感谢作者开源。
 
 
 
+### 部分修改：
+
 在我将作者的代码导入到本地运行时，报了一些错误，是一些由于环境不一样（pytorch版本不一样）导致的问题：
 
 使用：`git diff Demo_gan.py`查看修改代码记录。
@@ -56,6 +60,37 @@ fork from : `https://github.com/summitgao/HC_ADGAN`，感谢作者开源。
 
 ```
 
+### 环境配置：
+
+由于作者将所有代码都打包到一个文件，所以我将代码重新组织了一下。目前并没有做任何的改动。有兴趣的小伙伴可以参考下我的环境，我将的环境信息到处到了requirement.txt文件里面，如果你的环境运行代码报错，可以直接创建一个新的环境：
+
+```bash
+conda create --name <env> --file requirement.txt
+```
+
+### 关于数据集：
+
+数据集就是公用数据集，比较常见，可以直接到官网下载，我这里也提供一个下载链接：
+
+onedrive （可能需要科学上网，密码：12345）： [link](https://8lkk36-my.sharepoint.com/:f:/g/personal/roczhang_8lkk36_onmicrosoft_com/EimlIYhaPYpPntKo2-BKey8Bwarqtz2kC2JB5imXuJmO9A?e=kzfeli)
+
+百度网盘（提取码：jpsi）：[link](https://pan.baidu.com/s/1SpXMeqTmv4Kn5E5iAXLiIw?pwd=jpsi)
+
+### 关于运行代码：
+
+参数都有默认值，可以直接运行主函数即可运行代码：这个是原作者的代码。
+
+```
+python Demo_GAN.py
+```
+
+也可以运行我重新组织了代码的主函数：这个是我的代码，后期可能会修改网络。
+
+```
+python demo.py
+```
 
 
-由于作者将所有代码都打包到一个文件，所以我将代码重新组织了一下。目前并没有做任何的改动。
+
+
+
