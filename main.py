@@ -22,8 +22,8 @@ parser.add_argument('--imageSize', type=int, default=28, help='the height / widt
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
-parser.add_argument('--niter', type=int, default=500, help='number of epochs to train for')
-parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
+parser.add_argument('--niter', type=int, default=30, help='number of epochs to train for')
+parser.add_argument('--lr', type=float, default=0.0001, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
@@ -212,24 +212,30 @@ for epoch in range(1, opt.niter + 1):
     for i, datas in enumerate(train_loader):
         for j in range(2):  ## Update D 10 times for every G epoch
             netD.zero_grad()
+
+            # 将真实的训练数据放入到判别器网络中，得到判别器输出的标签
             img, label = datas
             batch_size = img.size(0)
             input.resize_(img.size()).copy_(img)
             s_label.resize_(batch_size).fill_(real_label)
             c_label.resize_(batch_size).copy_(label)
+            # 这里很奇怪，输出的值都是负值
             c_output = netD(input)
 
             # s_errD_real = s_criterion(s_output, s_label)
+            # 通过判别器输出的标签和真实标签，得到真实数据的损失
             c_errD_real = c_criterion(c_output, c_label)
             errD_real = c_errD_real
+            # 反向传播优化函数
             errD_real.backward()
+            # 计算出所有标签的平均值
             D_x = c_output.data.mean()
 
             correct, length = test(c_output, c_label)
             # print('real train finished!')
 
             # train with fake
-
+            # 生成噪声
             noise.resize_(batch_size, nz, 1, 1)
             noise.normal_(0, 1)
             noise_ = np.random.normal(0, 1, (batch_size, nz, 1, 1))
@@ -237,20 +243,27 @@ for epoch in range(1, opt.niter + 1):
                 noise.resize_(batch_size, nz, 1, 1).copy_(torch.from_numpy(noise_))
 
             # label = np.random.randint(0, nb_label, batch_size)
+            # 生成标签
             label = np.full(batch_size, nb_label)
             with torch.no_grad():
                 # f_label.data.resize_(batch_size).copy_(torch.from_numpy(label))
+                # 形状为（200，），值为16的标签
                 f_label.resize_(batch_size).copy_(torch.from_numpy(label))
 
             fake = netG(noise)
             # s_label.fill_(fake_label)
             c_output = netD(fake.detach())
             # s_errD_fake = s_criterion(s_output, s_label)
+            # 单独训练噪声类，高光谱图像有16类，分别对应1-15，噪声类分配为16
             c_errD_fake = c_criterion(c_output, f_label)
             errD_fake = c_errD_fake
+            # 反向传播
             errD_fake.backward()
+            # 计算出生成图像类别的平均值
             D_G_z1 = c_output.data.mean()
+            # 判别器的损失是真实图像的损失加上生成图像的损失
             errD = errD_real + errD_fake
+            # 优化
             optimizerD.step()
             # print('fake train finished!')
             ###############
@@ -261,6 +274,7 @@ for epoch in range(1, opt.niter + 1):
         # s_label.data.fill_(real_label)  # fake labels are real for generator cost
         c_output = netD(fake)
         # s_errG = s_criterion(s_output, s_label)
+        # 这里将生成的噪声和真实类别进行计算损失，为了使得生成的图像更加接近真实图像。
         c_errG = c_criterion(c_output, c_label)
         errG = c_errG
         errG.backward()
@@ -277,7 +291,7 @@ for epoch in range(1, opt.niter + 1):
 
     # torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
     # torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
-    if epoch % 5 == 0:
+    if epoch % 2 == 0:
         netD.eval()
         netG.eval()
         test_loss = 0
