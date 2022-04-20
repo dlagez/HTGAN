@@ -30,7 +30,9 @@ def test(predict, labels):
     correct = pred.eq(labels.data).cpu().sum()
     return correct, len(labels.data)
 
-def flip(data):
+
+# 在周围填充零值
+def flip(data):  # data:  145, 145, 3
 
     y_4 = np.zeros_like(data)
     y_1 = y_4

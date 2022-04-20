@@ -13,7 +13,9 @@ from torch.autograd import Variable
 from sklearn.metrics import confusion_matrix
 
 from utils import applyPCA, kappa, test, flip, padWithZeros, createImageCubes, splitTrainTestSet, TrainDS, TestDS
-from model import netD, netG
+# from model import netD, netG
+from model import netG
+from transformer import ADGANTransformer as netD
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=0)
@@ -21,7 +23,7 @@ parser.add_argument('--batchSize', type=int, default=100, help='input batch size
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
-parser.add_argument('--ndf', type=int, default=64)
+# parser.add_argument('--ndf', type=int, default=64)
 parser.add_argument('--niter', type=int, default=30, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=0.0001, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
@@ -156,7 +158,7 @@ test_loader = torch.utils.data.DataLoader(dataset=testset, batch_size=200, shuff
 
 nz = int(opt.nz)
 ngf = int(opt.ngf)
-ndf = int(opt.ndf)
+# ndf = int(opt.ndf)
 
 nc = pca_components
 nb_label = num_class
@@ -168,7 +170,10 @@ if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = netD(ndf, nc, nb_label)
+# ndf: 原作者的ndf本来是控制隐藏层的结构的，这改用了transformer之后用来控制img_size，
+#      本来输入图像大小是通过HalfWidth控制的，这里直接改了算了
+# netD = netD(img_size=ndf, in_chans=nc, num_classes=nb_label)
+netD = netD(img_size=2*HalfWidth, in_chans=nc, num_classes=nb_label)
 
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))

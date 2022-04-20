@@ -48,6 +48,10 @@ class netG(nn.Module):
 
 
 class netD(nn.Module):
+    # 需要三个变量来控制网络的结构，
+    #   ndf：终止中间层的变量
+    #   nc：input channel
+    #   nb_label：output class
     def __init__(self, ndf, nc, nb_label):
         super(netD, self).__init__()
         self.LeakyReLU = nn.LeakyReLU(0.2, inplace=True)
