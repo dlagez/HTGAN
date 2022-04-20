@@ -114,12 +114,12 @@ imdb['set'] = np.zeros([nTrain + nTest], dtype=np.int64)  # 10176
 # data[Row[]]
 #
 for iSample in range(nTrain + nTest):  # 将训练集随机取值放进imdb中
-    print('Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Row[RandPerm[iSample]] - HalfWidth, Row[RandPerm[iSample]] + HalfWidth))
-    print('Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Column[RandPerm[iSample]] - HalfWidth, Column[RandPerm[iSample]] + HalfWidth))
+    # print('Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Row[RandPerm[iSample]] - HalfWidth, Row[RandPerm[iSample]] + HalfWidth))
+    # print('Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Column[RandPerm[iSample]] - HalfWidth, Column[RandPerm[iSample]] + HalfWidth))
     imdb['datas'][:, :, :, iSample] = data[Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth,
                                       Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth,
                                       :]
-    print('Row[RandPerm[iSample]],Column[RandPerm[iSample]] = {}, {}'.format(Row[RandPerm[iSample]], Column[RandPerm[iSample]]))
+    # print('Row[RandPerm[iSample]],Column[RandPerm[iSample]] = {}, {}'.format(Row[RandPerm[iSample]], Column[RandPerm[iSample]]))
     imdb['Labels'][iSample] = G[Row[RandPerm[iSample]],
                                 Column[RandPerm[iSample]]].astype(np.int64)
 print('Data is OK.')
@@ -173,7 +173,7 @@ print(netG)
 # ndf: 原作者的ndf本来是控制隐藏层的结构的，这改用了transformer之后用来控制img_size，
 #      本来输入图像大小是通过HalfWidth控制的，这里直接改了算了
 # netD = netD(img_size=ndf, in_chans=nc, num_classes=nb_label)
-netD = netD(img_size=2*HalfWidth, in_chans=nc, num_classes=nb_label)
+netD = netD(img_size=2*HalfWidth, in_chans=nc)
 
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
