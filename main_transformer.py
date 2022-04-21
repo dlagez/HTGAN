@@ -37,7 +37,7 @@ parser.add_argument('--clamp_lower', type=float, default=-0.01)
 parser.add_argument('--clamp_upper', type=float, default=0.01)
 opt = parser.parse_args()
 opt.outf = 'model'
-opt.cuda = False
+# opt.cuda = False
 print(opt)
 
 CRITIC_ITERS = 1
@@ -232,6 +232,7 @@ for epoch in range(1, opt.niter + 1):
 
             # 将真实的训练数据放入到判别器网络中，得到判别器输出的标签
             img, label = datas
+            # img = img.tanspose((0, 2, 3, 1))
             batch_size = img.size(0)
             input.resize_(img.size()).copy_(img)
             s_label.resize_(batch_size).fill_(real_label)
@@ -347,7 +348,10 @@ for epoch in range(1, opt.niter + 1):
             best_acc = acc
 
         # C = confusion_matrix(target.data.cpu().numpy(), pred.cpu().numpy())
-        C = confusion_matrix(all_target, all_Label)
+        if opt.cuda:
+            C = confusion_matrix([i.cpu() for i in all_target], [i.cpu() for i in all_Label])
+        else:
+            C = confusion_matrix(all_target, all_Label)
         C = C[:num_class, :num_class]
         # np.save('c.npy', C)
         print(C)
