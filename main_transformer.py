@@ -12,7 +12,8 @@ import torch.utils.data
 from torch.autograd import Variable
 from sklearn.metrics import confusion_matrix
 
-from utils import applyPCA, kappa, test, flip, padWithZeros, createImageCubes, splitTrainTestSet, TrainDS, TestDS
+from utils import applyPCA, kappa, test, flip, padWithZeros, createImageCubes, splitTrainTestSet
+from datasets import TrainDS, TestDS
 # from model import netD, netG
 from model import netG
 from transformer import ADGANTransformer as netD
@@ -21,6 +22,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=0)
 parser.add_argument('--batchSize', type=int, default=100, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
+parser.add_argument('--nTrain', type=int, default=2000, help='how many data to train')
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
 # parser.add_argument('--ndf', type=int, default=64)
@@ -30,6 +32,8 @@ parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. de
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
+parser.add_argument('--dataset', default='indian', help="Dataset to use.")
+parser.add_argument('--folder', default='./data', help="Folder where to store the datasets")
 parser.add_argument('--manualSeed', type=int, help='manual seed')
 parser.add_argument('--decreasing_lr', default='120,240,420,620,800', help='decreasing strategy')
 parser.add_argument('--wd', type=float, default=0.001, help='weight decay')
@@ -37,10 +41,15 @@ parser.add_argument('--clamp_lower', type=float, default=-0.01)
 parser.add_argument('--clamp_upper', type=float, default=0.01)
 opt = parser.parse_args()
 opt.outf = 'model'
-# opt.cuda = False
-print(opt)
 
-CRITIC_ITERS = 1
+
+print(opt)
+# nTrain for Indian dataset 4000
+# nTrain for Botswana dataset 1000
+nTrain = opt.nTrain
+folder = opt.folder
+dataset_name = opt.dataset
+
 try:
     os.makedirs(opt.outf)
 except OSError:
@@ -58,99 +67,72 @@ cudnn.benchmark = False
 if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-# num_class = 16
 # load data
-matfn1 = 'Indian_pines_corrected.mat'
-data1 = sio.loadmat(matfn1)
-X = data1['indian_pines_corrected']
-matfn2 = 'Indian_pines_gt.mat'
-data2 = sio.loadmat(matfn2)
-y = data2['indian_pines_gt']
-
-
-# test_ratio = 0.90
-# patch_size = 25
+if dataset_name == 'Indian':
+    path_data = folder + '/' + 'Indian_pines_corrected.mat'
+    path_gt = folder + '/' + 'Indian_pines_gt.mat'
+    X = sio.loadmat(path_data)['indian_pines_corrected']
+    y = sio.loadmat(path_gt)['indian_pines_gt']
+elif dataset_name == 'Botswana':
+    path_data = folder + '/' + 'Botswana.mat'
+    path_gt = folder + '/' + 'Botswana_gt.mat'
+    X = sio.loadmat(path_data)['Botswana']
+    y = sio.loadmat(path_gt)['Botswana_gt']
 pca_components = 3
 print('Hyperspectral data shape:', X.shape)
 print('Label shape:', y.shape)
 X_pca = applyPCA(X, numComponents=pca_components)
 print('Data shape after PCA :', X_pca.shape)
 
-[nRow, nColumn, nBand] = X_pca.shape  # nColum 145 nBand 3 nRow 145
+[nRow, nColumn, nBand] = X_pca.shape
 pcdata = flip(X_pca)  # 435 435 3
 groundtruth = flip(y)  # 435 435
 
 num_class = int(np.max(y))
 
 HalfWidth = 32
-# Wid = 2 * HalfWidth
-# G = groundtruth[145 - 32: 2 * 145 + 32, 145 - 32: 2* 145 + 32] = 209, 209
-# data = pcdata[145 - 32: 2 * 145 + 32, 145 - 32: 2* 145 + 32] = 209, 209, 3
 G = groundtruth[nRow - HalfWidth:2 * nRow + HalfWidth, nColumn - HalfWidth:2 * nColumn + HalfWidth]
 data = pcdata[nRow - HalfWidth:2 * nRow + HalfWidth, nColumn - HalfWidth:2 * nColumn + HalfWidth, :]
-# row, col  = 209, 209
 [row, col] = G.shape
 
-NotZeroMask = np.zeros([row, col])  # 创建了一个209，209的二维向量，值全部为零
-# Wid = 2 * HalfWidth
-# NotZeroMask[32 + 1: -1 - 32 + 1, 32 + 1: -1 - 32 + 1] = NotZeroMask[33: -32, 33, -32] = 1
-# 就是把选定区域的值全部变成了1
+NotZeroMask = np.zeros([row, col])
 NotZeroMask[HalfWidth + 1: -1 - HalfWidth + 1, HalfWidth + 1: -1 - HalfWidth + 1] = 1
-# 上面选定区域的值不变，其他值变为零
 G = G * NotZeroMask
-# 取出值不为0的坐标，row是横坐标，column是纵坐标
 [Row, Column] = np.nonzero(G)
 nSample = np.size(Row)
+RandPerm = np.random.permutation(nSample)
 
-RandPerm = np.random.permutation(nSample)  # 洗牌，返回随机值
-
-
-nTrain = 2000
 nTest = nSample - nTrain
 imdb = {}
-imdb['datas'] = np.zeros([2 * HalfWidth, 2 * HalfWidth, nBand, nTrain + nTest], dtype=np.float32)  # 64， 64，3，10176
-imdb['Labels'] = np.zeros([nTrain + nTest], dtype=np.int64)  # 10176
-imdb['set'] = np.zeros([nTrain + nTest], dtype=np.int64)  # 10176
-# data[Row[]]
-#
-for iSample in range(nTrain + nTest):  # 将训练集随机取值放进imdb中
-    # print('Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Row[RandPerm[iSample]] - HalfWidth, Row[RandPerm[iSample]] + HalfWidth))
-    # print('Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Column[RandPerm[iSample]] - HalfWidth, Column[RandPerm[iSample]] + HalfWidth))
+imdb['datas'] = np.zeros([2 * HalfWidth, 2 * HalfWidth, nBand, nTrain + nTest], dtype=np.float32)
+imdb['Labels'] = np.zeros([nTrain + nTest], dtype=np.int64)
+imdb['set'] = np.zeros([nTrain + nTest], dtype=np.int64)
+
+for iSample in range(nTrain + nTest):
     imdb['datas'][:, :, :, iSample] = data[Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth,
                                       Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth,
                                       :]
-    # print('Row[RandPerm[iSample]],Column[RandPerm[iSample]] = {}, {}'.format(Row[RandPerm[iSample]], Column[RandPerm[iSample]]))
     imdb['Labels'][iSample] = G[Row[RandPerm[iSample]],
                                 Column[RandPerm[iSample]]].astype(np.int64)
 print('Data is OK.')
-
 imdb['Labels'] = imdb['Labels'] - 1
 
 imdb['set'] = np.hstack((np.ones([nTrain]), 3 * np.ones([nTest]))).astype(np.int64)
-Xtrain = imdb['datas'][:, :, :, :nTrain]  # 取两千个作为训练集
-ytrain = imdb['Labels'][:nTrain]  # 取两千个作为训练集
+Xtrain = imdb['datas'][:, :, :, :nTrain]
+ytrain = imdb['Labels'][:nTrain]
 print('Xtrain :', Xtrain.shape)
 print('yTrain:', ytrain.shape)
-Xtest = imdb['datas']  # 所有的数据作为测试集
-ytest = imdb['Labels']  # 所有的数据作为测试集
+Xtest = imdb['datas']
+ytest = imdb['Labels']
 print('Xtest :', Xtest.shape)
 print('ytest:', ytest.shape)
-"""
-Xtrain=Xtrain.reshape(-1,patch_size,patch_size,pca_components)
-Xtest=Xtest.reshape(-1,patch_size,patch_size,pca_components)
-print(' before Xtrain shape:',Xtrain.shape)
-print('before Xtest shape:',Xtest.shape)
-"""
-# 将数据转化成dataset
+
 Xtrain = Xtrain.transpose(3, 2, 0, 1)
 Xtest = Xtest.transpose(3, 2, 0, 1)
 print('after Xtrain shape:', Xtrain.shape)
 print('after Xtest shape:', Xtest.shape)
 
 
-
-
-# 创建 trainloader 和 testloader
 trainset = TrainDS(Xtrain, ytrain)
 testset = TestDS(Xtest, ytest)
 train_loader = torch.utils.data.DataLoader(dataset=trainset, batch_size=200, shuffle=True, num_workers=0)
@@ -173,7 +155,7 @@ print(netG)
 # ndf: 原作者的ndf本来是控制隐藏层的结构的，这改用了transformer之后用来控制img_size，
 #      本来输入图像大小是通过HalfWidth控制的，这里直接改了算了
 # netD = netD(img_size=ndf, in_chans=nc, num_classes=nb_label)
-netD = netD(img_size=2*HalfWidth, in_chans=nc)
+netD = netD(img_size=2*HalfWidth, in_chans=nc, num_classes=nb_label + 1)
 
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))

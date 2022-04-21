@@ -94,3 +94,23 @@ python demo.py
 
 
 
+### HSI_transformer_gan
+
+使用trasformer替换了discriminator之后：
+
+
+
+训练：一般50个epochs之后就准确率就达到了99%左右
+
+indian
+
+```
+python main_transformer.py --niter 200 --lr 0.0002 --nTrain 4000 --dataset Indian --folder "/Volumes/roczhang/data/Indian Pines"
+```
+
+Botswana
+
+```
+python main_transformer.py --niter 200 --lr 0.0002 --nTrain 1000--dataset Botswana --folder "/Volumes/roczhang/data/Botswana"
+```
+
