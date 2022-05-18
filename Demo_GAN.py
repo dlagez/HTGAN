@@ -43,7 +43,7 @@ parser.add_argument('--clamp_upper', type=float, default=0.01)
 opt = parser.parse_args()
 #opt.dataroot = 'E:/picture/CIFAR10'
 opt.outf = 'model'
-opt.cuda = False
+# opt.cuda = False
 print(opt)
 
 CRITIC_ITERS = 1
@@ -128,12 +128,12 @@ def flip(data):
 
 #num_class = 16
 
-matfn1 = 'Indian_pines_corrected.mat'
+matfn1 = 'D:\RocZhang\data\yumi\yumidata_new.mat'
 data1 = sio.loadmat(matfn1)
-X = data1['indian_pines_corrected']
-matfn2='Indian_pines_gt.mat'
+X = data1['yumidata']
+matfn2='D:\RocZhang\data\yumi\yumilabel_new2.mat'
 data2=sio.loadmat(matfn2)
-y = data2['indian_pines_gt']
+y = data2['yumi_label']
 test_ratio=0.90
 patch_size=25
 pca_components=3
@@ -174,7 +174,7 @@ Xtrain,Xtest,ytrain,ytest=splitTrainTestSet(X_pca,y,test_ratio)
 print('Xtrain shape:',Xtrain.shape)
 print('Xtest shape:',Xtest.shape)
 """
-nTrain = 2000
+nTrain = 10000
 nTest = nSample-nTrain
 imdb = {}
 imdb['datas'] = np.zeros([2 * HalfWidth, 2 * HalfWidth, nBand, nTrain + nTest], dtype=np.float32)
@@ -625,9 +625,13 @@ for epoch in range(1, opt.niter + 1):
             best_acc = acc
 
         #C = confusion_matrix(target.data.cpu().numpy(), pred.cpu().numpy())
-        C = confusion_matrix(all_target, all_Label)
+        if opt.cuda:
+            C = confusion_matrix([i.cpu() for i in all_target], [i.cpu() for i in all_Label])
+        else:
+            C = confusion_matrix(all_target, all_Label)
         C = C[:num_class,:num_class]
-        np.save('c.npy', C)
+        # np.save('c.npy', C)
+        print(C)
         k = kappa(C, np.shape(C)[0])
         AA_ACC = np.diag(C) / np.sum(C, 1)
         AA = np.mean(AA_ACC, 0)

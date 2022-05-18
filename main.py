@@ -12,7 +12,8 @@ import torch.utils.data
 from torch.autograd import Variable
 from sklearn.metrics import confusion_matrix
 
-from utils import applyPCA, kappa, test, flip, padWithZeros, createImageCubes, splitTrainTestSet, TrainDS, TestDS
+from utils import applyPCA, kappa, test, flip, padWithZeros, createImageCubes, splitTrainTestSet
+from datasets import TrainDS, TestDS
 from model import netD, netG
 
 parser = argparse.ArgumentParser()
@@ -35,7 +36,7 @@ parser.add_argument('--clamp_lower', type=float, default=-0.01)
 parser.add_argument('--clamp_upper', type=float, default=0.01)
 opt = parser.parse_args()
 opt.outf = 'model'
-opt.cuda = False
+# opt.cuda = False
 print(opt)
 
 CRITIC_ITERS = 1
@@ -58,10 +59,10 @@ if torch.cuda.is_available() and not opt.cuda:
 
 # num_class = 16
 # load data
-matfn1 = 'Indian_pines_corrected.mat'
+matfn1 = 'D:\RocZhang\data\IndianPines\Indian_pines_corrected.mat'
 data1 = sio.loadmat(matfn1)
 X = data1['indian_pines_corrected']
-matfn2 = 'Indian_pines_gt.mat'
+matfn2 = 'D:\RocZhang\data\IndianPines\Indian_pines_gt.mat'
 data2 = sio.loadmat(matfn2)
 y = data2['indian_pines_gt']
 
@@ -112,12 +113,12 @@ imdb['set'] = np.zeros([nTrain + nTest], dtype=np.int64)  # 10176
 # data[Row[]]
 #
 for iSample in range(nTrain + nTest):  # 将训练集随机取值放进imdb中
-    print('Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Row[RandPerm[iSample]] - HalfWidth, Row[RandPerm[iSample]] + HalfWidth))
-    print('Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Column[RandPerm[iSample]] - HalfWidth, Column[RandPerm[iSample]] + HalfWidth))
+    # print('Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Row[RandPerm[iSample]] - HalfWidth, Row[RandPerm[iSample]] + HalfWidth))
+    # print('Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Column[RandPerm[iSample]] - HalfWidth, Column[RandPerm[iSample]] + HalfWidth))
     imdb['datas'][:, :, :, iSample] = data[Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth,
                                       Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth,
                                       :]
-    print('Row[RandPerm[iSample]],Column[RandPerm[iSample]] = {}, {}'.format(Row[RandPerm[iSample]], Column[RandPerm[iSample]]))
+    # print('Row[RandPerm[iSample]],Column[RandPerm[iSample]] = {}, {}'.format(Row[RandPerm[iSample]], Column[RandPerm[iSample]]))
     imdb['Labels'][iSample] = G[Row[RandPerm[iSample]],
                                 Column[RandPerm[iSample]]].astype(np.int64)
 print('Data is OK.')
@@ -342,7 +343,10 @@ for epoch in range(1, opt.niter + 1):
             best_acc = acc
 
         # C = confusion_matrix(target.data.cpu().numpy(), pred.cpu().numpy())
-        C = confusion_matrix(all_target, all_Label)
+        if opt.cuda:
+            C = confusion_matrix([i.cpu() for i in all_target], [i.cpu() for i in all_Label])
+        else:
+            C = confusion_matrix(all_target, all_Label)
         C = C[:num_class, :num_class]
         # np.save('c.npy', C)
         print(C)

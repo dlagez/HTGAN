@@ -1,6 +1,5 @@
 from __future__ import print_function
 import argparse
-import imp
 import os
 import random
 import numpy as np
@@ -22,27 +21,38 @@ from transformer import ADGANTransformer as netD
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=0)
 parser.add_argument('--batchSize', type=int, default=100, help='input batch size')
-parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
+parser.add_argument('--imageSize', type=int, default=24, help='the height / width of the input image to network')
+parser.add_argument('--nTrain', type=int, default=2000, help='how many data to train')
+parser.add_argument('--patch_size', type=int, default=4, help='Patch size')
+parser.add_argument('--window_size', type=int, default=8, help='window_size')
 parser.add_argument('--nz', type=int, default=100, help='size of the latent z vector')
 parser.add_argument('--ngf', type=int, default=64)
-parser.add_argument('--ndf', type=int, default=64)
-parser.add_argument('--niter', type=int, default=30, help='number of epochs to train for')
-parser.add_argument('--lr', type=float, default=0.0001, help='learning rate, default=0.0002')
+# parser.add_argument('--ndf', type=int, default=64)
+parser.add_argument('--niter', type=int, default=150, help='number of epochs to train for')
+parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--netG', default='', help="path to netG (to continue training)")
 parser.add_argument('--netD', default='', help="path to netD (to continue training)")
+parser.add_argument('--dataset', default='Indian', help="Dataset to use.")
+parser.add_argument('--folder', default='./data', help="Folder where to store the datasets")
 parser.add_argument('--manualSeed', type=int, help='manual seed')
-parser.add_argument('--decreasing_lr', default='10,20,30,40,50,60,80', help='decreasing strategy')
+parser.add_argument('--decreasing_lr', default='30,40,50,60,80', help='decreasing strategy')
 parser.add_argument('--wd', type=float, default=0.001, help='weight decay')
 parser.add_argument('--clamp_lower', type=float, default=-0.01)
 parser.add_argument('--clamp_upper', type=float, default=0.01)
 opt = parser.parse_args()
 opt.outf = 'model'
-# opt.cuda = False
-print(opt)
 
-CRITIC_ITERS = 1
+
+print(opt)
+# nTrain for Indian dataset 4000
+# nTrain for Botswana dataset 1000
+nTrain = opt.nTrain
+folder = opt.folder
+dataset_name = opt.dataset
+patch_size = opt.patch_size
+window_size = opt.window_size
 train_generator = True
 try:
     os.makedirs(opt.outf)
@@ -61,99 +71,99 @@ cudnn.benchmark = False
 if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-# num_class = 16
 # load data
-matfn1 = 'D:\RocZhang\data\IndianPines\Indian_pines_corrected.mat'
-data1 = sio.loadmat(matfn1)
-X = data1['indian_pines_corrected']
-matfn2 = 'D:\RocZhang\data\IndianPines\Indian_pines_gt.mat'
-data2 = sio.loadmat(matfn2)
-y = data2['indian_pines_gt']
+if dataset_name == 'Indian':
+    # path_data = folder + '/IndianPines/' + 'Indian_pines_corrected.mat'
+    path_data = os.path.join(folder, os.path.join('IndianPines', 'Indian_pines_corrected.mat'))
+    # path_gt = folder + '/' + 'Indian_pines_gt.mat'
+    path_gt = os.path.join(folder, os.path.join('IndianPines', 'Indian_pines_gt.mat'))
+
+    X = sio.loadmat(path_data)['indian_pines_corrected']
+    y = sio.loadmat(path_gt)['indian_pines_gt']
+elif dataset_name == 'Botswana':
+    # path_data = folder + '/' + 'Botswana.mat'
+    path_data = os.path.join(folder, os.path.join('Botswana', 'Botswana.mat'))
+
+    # path_gt = folder + '/' + 'Botswana_gt.mat'
+    path_gt = os.path.join(folder, os.path.join('Botswana', 'Botswana_gt.mat'))
+
+    X = sio.loadmat(path_data)['Botswana']
+    y = sio.loadmat(path_gt)['Botswana_gt']
+elif dataset_name == 'PaviaC':
+    # path_data = folder + '/' + 'Pavia.mat'
+    path_data = os.path.join(folder, os.path.join('PaviaC', 'Pavia.mat'))
+
+    # path_gt = folder + '/' + 'Pavia_gt.mat'
+    path_gt = os.path.join(folder, os.path.join('PaviaC', 'Pavia_gt.mat'))
+
+    X = sio.loadmat(path_data)['pavia']
+    y = sio.loadmat(path_gt)['pavia_gt']
+elif dataset_name == 'yumi':
+    # path_data = folder + '/' + 'yumidata_new.mat'
+    path_data = os.path.join(folder, os.path.join('yumi', 'yumidata_new.mat'))
+    # path_gt = folder + '/' + 'yumilabel_new2.mat'
+    path_gt = os.path.join(folder, os.path.join('yumi', 'yumilabel_new2.mat'))
+
+    X = sio.loadmat(path_data)['yumidata']
+    y = sio.loadmat(path_gt)['yumi_label']
 
 
-# test_ratio = 0.90
-# patch_size = 25
 pca_components = 3
 print('Hyperspectral data shape:', X.shape)
 print('Label shape:', y.shape)
 X_pca = applyPCA(X, numComponents=pca_components)
 print('Data shape after PCA :', X_pca.shape)
 
-[nRow, nColumn, nBand] = X_pca.shape  # nColum 145 nBand 3 nRow 145
+[nRow, nColumn, nBand] = X_pca.shape
 pcdata = flip(X_pca)  # 435 435 3
 groundtruth = flip(y)  # 435 435
 
 num_class = int(np.max(y))
 
+# HalfWidth = opt.imageSize // 2
 HalfWidth = 32
-# Wid = 2 * HalfWidth
-# G = groundtruth[145 - 32: 2 * 145 + 32, 145 - 32: 2* 145 + 32] = 209, 209
-# data = pcdata[145 - 32: 2 * 145 + 32, 145 - 32: 2* 145 + 32] = 209, 209, 3
 G = groundtruth[nRow - HalfWidth:2 * nRow + HalfWidth, nColumn - HalfWidth:2 * nColumn + HalfWidth]
 data = pcdata[nRow - HalfWidth:2 * nRow + HalfWidth, nColumn - HalfWidth:2 * nColumn + HalfWidth, :]
-# row, col  = 209, 209
 [row, col] = G.shape
 
-NotZeroMask = np.zeros([row, col])  # 创建了一个209，209的二维向量，值全部为零
-# Wid = 2 * HalfWidth
-# NotZeroMask[32 + 1: -1 - 32 + 1, 32 + 1: -1 - 32 + 1] = NotZeroMask[33: -32, 33, -32] = 1
-# 就是把选定区域的值全部变成了1
+NotZeroMask = np.zeros([row, col])
 NotZeroMask[HalfWidth + 1: -1 - HalfWidth + 1, HalfWidth + 1: -1 - HalfWidth + 1] = 1
-# 上面选定区域的值不变，其他值变为零
 G = G * NotZeroMask
-# 取出值不为0的坐标，row是横坐标，column是纵坐标
 [Row, Column] = np.nonzero(G)
 nSample = np.size(Row)
+RandPerm = np.random.permutation(nSample)
 
-RandPerm = np.random.permutation(nSample)  # 洗牌，返回随机值
-
-
-nTrain = 4000
 nTest = nSample - nTrain
 imdb = {}
-imdb['datas'] = np.zeros([2 * HalfWidth, 2 * HalfWidth, nBand, nTrain + nTest], dtype=np.float32)  # 64， 64，3，10176
-imdb['Labels'] = np.zeros([nTrain + nTest], dtype=np.int64)  # 10176
-imdb['set'] = np.zeros([nTrain + nTest], dtype=np.int64)  # 10176
-# data[Row[]]
-#
-for iSample in range(nTrain + nTest):  # 将训练集随机取值放进imdb中
-    # print('Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Row[RandPerm[iSample]] - HalfWidth, Row[RandPerm[iSample]] + HalfWidth))
-    # print('Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth = {}: {}'.format(Column[RandPerm[iSample]] - HalfWidth, Column[RandPerm[iSample]] + HalfWidth))
+imdb['datas'] = np.zeros([2 * HalfWidth, 2 * HalfWidth, nBand, nTrain + nTest], dtype=np.float32)
+imdb['Labels'] = np.zeros([nTrain + nTest], dtype=np.int64)
+imdb['set'] = np.zeros([nTrain + nTest], dtype=np.int64)
+
+for iSample in range(nTrain + nTest):
     imdb['datas'][:, :, :, iSample] = data[Row[RandPerm[iSample]] - HalfWidth: Row[RandPerm[iSample]] + HalfWidth,
                                       Column[RandPerm[iSample]] - HalfWidth: Column[RandPerm[iSample]] + HalfWidth,
                                       :]
-    # print('Row[RandPerm[iSample]],Column[RandPerm[iSample]] = {}, {}'.format(Row[RandPerm[iSample]], Column[RandPerm[iSample]]))
     imdb['Labels'][iSample] = G[Row[RandPerm[iSample]],
                                 Column[RandPerm[iSample]]].astype(np.int64)
 print('Data is OK.')
-
 imdb['Labels'] = imdb['Labels'] - 1
 
 imdb['set'] = np.hstack((np.ones([nTrain]), 3 * np.ones([nTest]))).astype(np.int64)
-Xtrain = imdb['datas'][:, :, :, :nTrain]  # 取两千个作为训练集
-ytrain = imdb['Labels'][:nTrain]  # 取两千个作为训练集
+Xtrain = imdb['datas'][:, :, :, :nTrain]
+ytrain = imdb['Labels'][:nTrain]
 print('Xtrain :', Xtrain.shape)
 print('yTrain:', ytrain.shape)
-Xtest = imdb['datas']  # 所有的数据作为测试集
-ytest = imdb['Labels']  # 所有的数据作为测试集
+Xtest = imdb['datas']
+ytest = imdb['Labels']
 print('Xtest :', Xtest.shape)
 print('ytest:', ytest.shape)
-"""
-Xtrain=Xtrain.reshape(-1,patch_size,patch_size,pca_components)
-Xtest=Xtest.reshape(-1,patch_size,patch_size,pca_components)
-print(' before Xtrain shape:',Xtrain.shape)
-print('before Xtest shape:',Xtest.shape)
-"""
-# 将数据转化成dataset
+
 Xtrain = Xtrain.transpose(3, 2, 0, 1)
 Xtest = Xtest.transpose(3, 2, 0, 1)
 print('after Xtrain shape:', Xtrain.shape)
 print('after Xtest shape:', Xtest.shape)
 
 
-
-
-# 创建 trainloader 和 testloader
 trainset = TrainDS(Xtrain, ytrain)
 testset = TestDS(Xtest, ytest)
 train_loader = torch.utils.data.DataLoader(dataset=trainset, batch_size=200, shuffle=True, num_workers=0)
@@ -161,7 +171,7 @@ test_loader = torch.utils.data.DataLoader(dataset=testset, batch_size=200, shuff
 
 nz = int(opt.nz)
 ngf = int(opt.ngf)
-ndf = int(opt.ndf)
+# ndf = int(opt.ndf)
 
 nc = pca_components
 nb_label = num_class
@@ -173,7 +183,10 @@ if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=25)
+# ndf: 原作者的ndf本来是控制隐藏层的结构的，这改用了transformer之后用来控制img_size，
+#      本来输入图像大小是通过HalfWidth控制的，这里直接改了算了
+# netD = netD(img_size=ndf, in_chans=nc, num_classes=nb_label)
+netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=window_size, patch_size=patch_size)
 
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
@@ -185,7 +198,7 @@ c_criterion = nn.NLLLoss()
 input = torch.FloatTensor(opt.batchSize, nc, opt.imageSize, opt.imageSize)
 noise = torch.FloatTensor(opt.batchSize, nz, 1, 1)
 fixed_noise = torch.FloatTensor(opt.batchSize, nz, 1, 1).normal_(0, 1)
-s_label = torch.FloatTensor(opt.batchSize)
+# s_label = torch.FloatTensor(opt.batchSize)
 c_label = torch.LongTensor(opt.batchSize)
 f_label = torch.LongTensor(opt.batchSize)
 
@@ -197,13 +210,14 @@ if opt.cuda:
     netG.cuda()
     s_criterion.cuda()
     c_criterion.cuda()
-    input, s_label = input.cuda(), s_label.cuda()
+    # input, s_label = input.cuda(), s_label.cuda()
+    input= input.cuda()
     c_label = c_label.cuda()
     f_label = f_label.cuda()
     noise, fixed_noise = noise.cuda(), fixed_noise.cuda()
 
 input = Variable(input)
-s_label = Variable(s_label)
+# s_label = Variable(s_label)
 c_label = Variable(c_label)
 f_label = Variable(f_label)
 noise = Variable(noise)
@@ -227,14 +241,15 @@ for epoch in range(1, opt.niter + 1):
         optimizerG.param_groups[0]['lr'] *= 0.9
 
     for i, datas in enumerate(train_loader):
-        for j in range(2):  ## Update D 10 times for every G epoch
+        for j in range(5):  ## Update D 10 times for every G epoch
             netD.zero_grad()
 
             # 将真实的训练数据放入到判别器网络中，得到判别器输出的标签
             img, label = datas
+            # img = img.tanspose((0, 2, 3, 1))
             batch_size = img.size(0)
             input.resize_(img.size()).copy_(img)
-            s_label.resize_(batch_size).fill_(real_label)
+            # s_label.resize_(batch_size).fill_(real_label)
             c_label.resize_(batch_size).copy_(label)
             # 这里很奇怪，输出的值都是负值
             c_output = netD(input)  # 200，17
@@ -287,21 +302,19 @@ for epoch in range(1, opt.niter + 1):
             #  Updata G
             ##############
 
-        netG.zero_grad()
-        # s_label.data.fill_(real_label)  # fake labels are real for generator cost
-        c_output = netD(fake)
-        # s_errG = s_criterion(s_output, s_label)
-        # 这里将生成的噪声和真实类别进行计算损失，为了使得生成的图像更加接近真实图像。
-        c_errG = c_criterion(c_output, c_label)
-        errG = c_errG
-        if train_generator:
-            errG.backward()
-            optimizerG.step()
-        # errG.backward()
-        D_G_z2 = c_output.data.mean()
-        # optimizerG.step()
-        right += correct
-        # print('begin spout!')
+    netG.zero_grad()
+    # s_label.data.fill_(real_label)  # fake labels are real for generator cost
+    c_output = netD(fake)
+    # s_errG = s_criterion(s_output, s_label)
+    # 这里将生成的噪声和真实类别进行计算损失，为了使得生成的图像更加接近真实图像。
+    c_errG = c_criterion(c_output, c_label)
+    errG = c_errG
+    if train_generator:
+        errG.backward()
+        optimizerG.step()
+    D_G_z2 = c_output.data.mean()
+    right += correct
+    # print('begin spout!')
 
     if epoch % 2 == 0:
         print('[%d/%d][%d/%d]   D(x): %.4f D(G(z)): %.4f / %.4f=%.4f,  Accuracy: %.4f / %.4f = %.4f'
@@ -350,6 +363,7 @@ for epoch in range(1, opt.niter + 1):
             best_acc = acc
         if best_acc > 97:
             train_generator = False
+        print("train_generator:{}".format(train_generator))
 
         # C = confusion_matrix(target.data.cpu().numpy(), pred.cpu().numpy())
         if opt.cuda:
@@ -358,9 +372,8 @@ for epoch in range(1, opt.niter + 1):
             C = confusion_matrix(all_target, all_Label)
         C = C[:num_class, :num_class]
         # np.save('c.npy', C)
-        # print(C)
+        print(C)
         k = kappa(C, np.shape(C)[0])
         AA_ACC = np.diag(C) / np.sum(C, 1)
         AA = np.mean(AA_ACC, 0)
-        # print('OA= %.5f AA= %.5f k= %.5f' % (acc, AA, k))
         print('OA= %.5f AA= %.5f k= %.5f best_acc= %.5f' % (acc, AA, k, best_acc))
