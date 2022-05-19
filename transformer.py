@@ -599,9 +599,9 @@ class ADGANTransformer(nn.Module):
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
     """
     # pathch_size 把输入图像分成多少分，输入64*64， Patch_size=16， 每份大小：64/16=4
-    def __init__(self, img_size=64, patch_size=25, in_chans=3, num_classes=17,
+    def __init__(self, img_size=64, patch_size=4, in_chans=3, num_classes=17,
                  embed_dim=96, depths=[2, 2], num_heads=[3, 6],
-                 window_size=8, mlp_ratio=4., qkv_bias=True, qk_scale=None,
+                 window_size=4, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
                  use_checkpoint=False, **kwargs):

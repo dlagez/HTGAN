@@ -37,10 +37,18 @@ parser.add_argument('--decreasing_lr', default='10,20,30,40,50,60,80', help='dec
 parser.add_argument('--wd', type=float, default=0.001, help='weight decay')
 parser.add_argument('--clamp_lower', type=float, default=-0.01)
 parser.add_argument('--clamp_upper', type=float, default=0.01)
+
+parser.add_argument('--dataset', default='Indian', help="Dataset to use.")
+parser.add_argument('--folder', default='./data', help="Folder where to store the datasets")
+parser.add_argument('--nTrain', type=int, default=2000, help='how many data to train')
+
 opt = parser.parse_args()
 opt.outf = 'model'
 # opt.cuda = False
 print(opt)
+folder = opt.folder
+dataset_name = opt.dataset
+nTrain = opt.nTrain
 
 CRITIC_ITERS = 1
 train_generator = True
@@ -63,12 +71,48 @@ if torch.cuda.is_available() and not opt.cuda:
 
 # num_class = 16
 # load data
-matfn1 = 'D:\RocZhang\data\IndianPines\Indian_pines_corrected.mat'
-data1 = sio.loadmat(matfn1)
-X = data1['indian_pines_corrected']
-matfn2 = 'D:\RocZhang\data\IndianPines\Indian_pines_gt.mat'
-data2 = sio.loadmat(matfn2)
-y = data2['indian_pines_gt']
+# matfn1 = 'D:\RocZhang\data\IndianPines\Indian_pines_corrected.mat'
+# data1 = sio.loadmat(matfn1)
+# X = data1['indian_pines_corrected']
+# matfn2 = 'D:\RocZhang\data\IndianPines\Indian_pines_gt.mat'
+# data2 = sio.loadmat(matfn2)
+# y = data2['indian_pines_gt']
+
+# load data
+if dataset_name == 'Indian':
+    # path_data = folder + '/IndianPines/' + 'Indian_pines_corrected.mat'
+    path_data = os.path.join(folder, os.path.join('IndianPines', 'Indian_pines_corrected.mat'))
+    # path_gt = folder + '/' + 'Indian_pines_gt.mat'
+    path_gt = os.path.join(folder, os.path.join('IndianPines', 'Indian_pines_gt.mat'))
+
+    X = sio.loadmat(path_data)['indian_pines_corrected']
+    y = sio.loadmat(path_gt)['indian_pines_gt']
+elif dataset_name == 'Botswana':
+    # path_data = folder + '/' + 'Botswana.mat'
+    path_data = os.path.join(folder, os.path.join('Botswana', 'Botswana.mat'))
+
+    # path_gt = folder + '/' + 'Botswana_gt.mat'
+    path_gt = os.path.join(folder, os.path.join('Botswana', 'Botswana_gt.mat'))
+
+    X = sio.loadmat(path_data)['Botswana']
+    y = sio.loadmat(path_gt)['Botswana_gt']
+elif dataset_name == 'PaviaC':
+    # path_data = folder + '/' + 'Pavia.mat'
+    path_data = os.path.join(folder, os.path.join('PaviaC', 'Pavia.mat'))
+
+    # path_gt = folder + '/' + 'Pavia_gt.mat'
+    path_gt = os.path.join(folder, os.path.join('PaviaC', 'Pavia_gt.mat'))
+
+    X = sio.loadmat(path_data)['pavia']
+    y = sio.loadmat(path_gt)['pavia_gt']
+elif dataset_name == 'yumi':
+    # path_data = folder + '/' + 'yumidata_new.mat'
+    path_data = os.path.join(folder, os.path.join('yumi', 'yumidata_new.mat'))
+    # path_gt = folder + '/' + 'yumilabel_new2.mat'
+    path_gt = os.path.join(folder, os.path.join('yumi', 'yumilabel_new2.mat'))
+
+    X = sio.loadmat(path_data)['yumidata']
+    y = sio.loadmat(path_gt)['yumi_label']
 
 
 # test_ratio = 0.90
@@ -108,7 +152,7 @@ nSample = np.size(Row)
 RandPerm = np.random.permutation(nSample)  # 洗牌，返回随机值
 
 
-nTrain = 4000
+# nTrain = 5000
 nTest = nSample - nTrain
 imdb = {}
 imdb['datas'] = np.zeros([2 * HalfWidth, 2 * HalfWidth, nBand, nTrain + nTest], dtype=np.float32)  # 64， 64，3，10176
@@ -173,7 +217,7 @@ if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=25)
+netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=30)
 
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
@@ -348,7 +392,7 @@ for epoch in range(1, opt.niter + 1):
             test_loss, right, len(test_loader.dataset), acc))
         if acc > best_acc:
             best_acc = acc
-        if best_acc > 97:
+        if best_acc > 95:
             train_generator = False
 
         # C = confusion_matrix(target.data.cpu().numpy(), pred.cpu().numpy())
