@@ -114,7 +114,45 @@ Botswana
 python main_transformer.py --niter 200 --lr 0.0002 --nTrain 1000 --dataset Botswana --folder "/Volumes/roczhang/data/Botswana" --cuda
 ```
 
+vscode parameter
 
+```
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--nTrain", "4000",
+                "--niter", "150",
+                "--lr", "0.00008",
+                "--cuda",
+                "--dataset", "Indian",
+                "--folder", "D:/RocZhang/data",
+                // "--patch_size", "16",
+                // "--window_size", "8"
+            ]
+        },
+        {
+            "name": "analyze",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+        }
+    ]
+}
+```
 
 
 
