@@ -12,12 +12,13 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 from sklearn.metrics import confusion_matrix
-
+from sklearn.metrics import classification_report
 from utils import applyPCA, kappa, test, flip, padWithZeros, createImageCubes, splitTrainTestSet
 from datasets import TrainDS, TestDS
 # from model import netD, netG
 from model import netG
 from transformer import ADGANTransformer as netD
+from collections import Counter
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=0)
@@ -178,6 +179,9 @@ Xtrain = imdb['datas'][:, :, :, :nTrain]  # 取两千个作为训练集
 ytrain = imdb['Labels'][:nTrain]  # 取两千个作为训练集
 print('Xtrain :', Xtrain.shape)
 print('yTrain:', ytrain.shape)
+result = Counter(ytrain)
+print(result)
+
 Xtest = imdb['datas']  # 所有的数据作为测试集
 ytest = imdb['Labels']  # 所有的数据作为测试集
 print('Xtest :', Xtest.shape)
@@ -217,7 +221,7 @@ if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=30)
+netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=22)
 
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
@@ -271,7 +275,7 @@ for epoch in range(1, opt.niter + 1):
         optimizerG.param_groups[0]['lr'] *= 0.9
 
     for i, datas in enumerate(train_loader):
-        for j in range(2):  ## Update D 10 times for every G epoch
+        for j in range(10):  ## Update D 10 times for every G epoch
             netD.zero_grad()
 
             # 将真实的训练数据放入到判别器网络中，得到判别器输出的标签
@@ -392,15 +396,16 @@ for epoch in range(1, opt.niter + 1):
             test_loss, right, len(test_loader.dataset), acc))
         if acc > best_acc:
             best_acc = acc
+            if opt.cuda:
+                C = confusion_matrix([i.cpu() for i in all_target], [i.cpu() for i in all_Label])
+                print(classification_report([i.cpu() for i in all_target], [i.cpu() for i in all_Label]))
+            else:
+                C = confusion_matrix(all_target, all_Label)
+                print(classification_report(all_target, all_Label))
+            C = C[:num_class, :num_class]
+            # np.save('c.npy', C)
         if best_acc > 95:
             train_generator = False
-
-        # C = confusion_matrix(target.data.cpu().numpy(), pred.cpu().numpy())
-        if opt.cuda:
-            C = confusion_matrix([i.cpu() for i in all_target], [i.cpu() for i in all_Label])
-        else:
-            C = confusion_matrix(all_target, all_Label)
-        C = C[:num_class, :num_class]
         # np.save('c.npy', C)
         # print(C)
         k = kappa(C, np.shape(C)[0])
