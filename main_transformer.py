@@ -16,7 +16,7 @@ from sklearn.metrics import classification_report
 from utils import applyPCA, kappa, test, flip, padWithZeros, createImageCubes, splitTrainTestSet
 from datasets import TrainDS, TestDS
 # from model import netD, netG
-from model import netG
+from model import netG_16 as netG
 from transformer import ADGANTransformer as netD
 from collections import Counter
 
@@ -130,7 +130,7 @@ groundtruth = flip(y)  # 435 435
 
 num_class = int(np.max(y))
 
-HalfWidth = 32
+HalfWidth = 8
 # Wid = 2 * HalfWidth
 # G = groundtruth[145 - 32: 2 * 145 + 32, 145 - 32: 2* 145 + 32] = 209, 209
 # data = pcdata[145 - 32: 2 * 145 + 32, 145 - 32: 2* 145 + 32] = 209, 209, 3
@@ -221,7 +221,7 @@ if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=22)
+netD = netD(img_size=16, in_chans=nc, num_classes=nb_label + 1, window_size=4, patch_size=4)
 
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
