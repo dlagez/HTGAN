@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import os
+import scipy.io as sio
 from sklearn.decomposition import PCA
 
 
@@ -79,6 +81,64 @@ def applyPCA(X,numComponents):
     newX=pca.fit_transform(newX)
     newX=np.reshape(newX,(X.shape[0],X.shape[1],numComponents))
     return newX
+
+def getData(dataset_name, folder):
+    # load data
+    if dataset_name == 'Indian':
+        # path_data = folder + '/IndianPines/' + 'Indian_pines_corrected.mat'
+        path_data = os.path.join(folder, os.path.join('IndianPines', 'Indian_pines_corrected.mat'))
+        # path_gt = folder + '/' + 'Indian_pines_gt.mat'
+        path_gt = os.path.join(folder, os.path.join('IndianPines', 'Indian_pines_gt.mat'))
+
+        X = sio.loadmat(path_data)['indian_pines_corrected']
+        y = sio.loadmat(path_gt)['indian_pines_gt']
+    elif dataset_name == 'Botswana':
+        # path_data = folder + '/' + 'Botswana.mat'
+        path_data = os.path.join(folder, os.path.join('Botswana', 'Botswana.mat'))
+
+        # path_gt = folder + '/' + 'Botswana_gt.mat'
+        path_gt = os.path.join(folder, os.path.join('Botswana', 'Botswana_gt.mat'))
+
+        X = sio.loadmat(path_data)['Botswana']
+        y = sio.loadmat(path_gt)['Botswana_gt']
+    elif dataset_name == 'PaviaC':
+        # path_data = folder + '/' + 'Pavia.mat'
+        path_data = os.path.join(folder, os.path.join('PaviaC', 'Pavia.mat'))
+
+        # path_gt = folder + '/' + 'Pavia_gt.mat'
+        path_gt = os.path.join(folder, os.path.join('PaviaC', 'Pavia_gt.mat'))
+
+        X = sio.loadmat(path_data)['pavia']
+        y = sio.loadmat(path_gt)['pavia_gt']
+    elif dataset_name == 'Salinas':
+        # path_data = folder + '/' + 'Pavia.mat'
+        path_data = os.path.join(folder, os.path.join('salinas', 'Salinas_corrected.mat'))
+
+        # path_gt = folder + '/' + 'Pavia_gt.mat'
+        path_gt = os.path.join(folder, os.path.join('salinas', 'Salinas_gt.mat'))
+
+        X = sio.loadmat(path_data)['salinas_corrected']
+        y = sio.loadmat(path_gt)['salinas_gt']
+    elif dataset_name == 'KSC':
+        # path_data = folder + '/' + 'Pavia.mat'
+        path_data = os.path.join(folder, os.path.join('KSC', 'KSC.mat'))
+
+        # path_gt = folder + '/' + 'Pavia_gt.mat'
+        path_gt = os.path.join(folder, os.path.join('KSC', 'KSC_gt.mat'))
+
+        X = sio.loadmat(path_data)['KSC']
+        y = sio.loadmat(path_gt)['KSC_gt']
+    elif dataset_name == 'yumi':
+        # path_data = folder + '/' + 'yumidata_new.mat'
+        path_data = os.path.join(folder, os.path.join('yumi', 'yumidata_new.mat'))
+        # path_gt = folder + '/' + 'yumilabel_new2.mat'
+        path_gt = os.path.join(folder, os.path.join('yumi', 'yumilabel_new2.mat'))
+
+        X = sio.loadmat(path_data)['yumidata']
+        y = sio.loadmat(path_gt)['yumi_label']
+    
+    return X, y
+
 
 
 

@@ -13,7 +13,7 @@ from torch.autograd import Variable
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import classification_report
 
-from utils import applyPCA, kappa, test, flip, padWithZeros, createImageCubes, splitTrainTestSet
+from utils import applyPCA, kappa, test, flip, getData
 from datasets import TrainDS, TestDS
 from model import netD, netG
 
@@ -35,10 +35,16 @@ parser.add_argument('--decreasing_lr', default='120,240,420,620,800', help='decr
 parser.add_argument('--wd', type=float, default=0.001, help='weight decay')
 parser.add_argument('--clamp_lower', type=float, default=-0.01)
 parser.add_argument('--clamp_upper', type=float, default=0.01)
+
+parser.add_argument('--dataset', default='Indian', help="Dataset to use.")
+parser.add_argument('--folder', default='./data', help="Folder where to store the datasets")
 opt = parser.parse_args()
 opt.outf = 'model'
 # opt.cuda = False
 print(opt)
+
+dataset = opt.dataset
+folder = opt.folder
 
 CRITIC_ITERS = 1
 try:
@@ -60,38 +66,8 @@ if torch.cuda.is_available() and not opt.cuda:
 
 # num_class = 16
 # load data
-matfn1 = 'D:\RocZhang\data\IndianPines\Indian_pines_corrected.mat'
-data1 = sio.loadmat(matfn1)
-X = data1['indian_pines_corrected']
-matfn2 = 'D:\RocZhang\data\IndianPines\Indian_pines_gt.mat'
-data2 = sio.loadmat(matfn2)
-y = data2['indian_pines_gt']
 
-
-# matfn1 = 'D:\RocZhang\data\Botswana\Botswana.mat'
-# data1 = sio.loadmat(matfn1)
-# X = data1['Botswana']
-# matfn2 = 'D:\RocZhang\data\Botswana\Botswana_gt.mat'
-# data2 = sio.loadmat(matfn2)
-# y = data2['Botswana_gt']
-
-
-
-# matfn1 = 'D:\RocZhang\data\PaviaC\Pavia.mat'
-# data1 = sio.loadmat(matfn1)
-# X = data1['pavia']
-# matfn2 = 'D:\RocZhang\data\PaviaC\Pavia_gt.mat'
-# data2 = sio.loadmat(matfn2)
-# y = data2['pavia_gt']
-
-# matfn1 = 'D:\RocZhang\data\Salinas\Salinas_corrected.mat'
-# data1 = sio.loadmat(matfn1)
-# X = data1['salinas_corrected']
-# matfn2 = 'D:\RocZhang\data\Salinas\Salinas_gt.mat'
-# data2 = sio.loadmat(matfn2)
-# y = data2['salinas_gt']
-
-
+X, y = getData(dataset, folder)
 
 
 # test_ratio = 0.90
