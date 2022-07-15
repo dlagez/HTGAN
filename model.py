@@ -13,7 +13,7 @@ class netG(nn.Module):
         self.conv2 = nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False)
         self.BatchNorm2 = nn.BatchNorm2d(ngf * 4)
         #self.Drop2 = nn.Dropout2d(p=0.5)
-        self.Drop2 = DropBlock2D()
+        # self.Drop2 = DropBlock2D()
 
         self.conv3 = nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False)
         self.BatchNorm3 = nn.BatchNorm2d(ngf * 2)
@@ -33,7 +33,7 @@ class netG(nn.Module):
         x = self.conv2(x)
         x = self.BatchNorm2(x)
         x = self.ReLU(x)
-        x = self.Drop2(x)
+        # x = self.Drop2(x)
 
         x = self.conv3(x)
         x = self.BatchNorm3(x)
@@ -61,7 +61,7 @@ class netD(nn.Module):
         self.conv2 = nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False)
         self.BatchNorm2 = nn.BatchNorm2d(ndf * 2)
         #self.Drop2 = nn.Dropout2d(p=0.5)
-        self.Drop2 = DropBlock2D()
+        # self.Drop2 = DropBlock2D()
         self.conv3 = nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False)
         self.BatchNorm3 = nn.BatchNorm2d(ndf * 4)
         self.conv4 = nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False)
@@ -82,12 +82,12 @@ class netD(nn.Module):
         x = self.conv2(x)
         x = self.BatchNorm2(x)
         x = self.LeakyReLU(x)
-        x = self.Drop2(x)
+        # x = self.Drop2(x)
 
         x = self.conv3(x)
         x = self.BatchNorm3(x)
         x = self.LeakyReLU(x)
-        x = self.Drop2(x)
+        # x = self.Drop2(x)
 
         x = self.conv4(x)
         x = self.BatchNorm4(x)

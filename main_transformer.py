@@ -106,6 +106,24 @@ elif dataset_name == 'PaviaC':
 
     X = sio.loadmat(path_data)['pavia']
     y = sio.loadmat(path_gt)['pavia_gt']
+elif dataset_name == 'Salinas':
+    # path_data = folder + '/' + 'Pavia.mat'
+    path_data = os.path.join(folder, os.path.join('salinas', 'Salinas_corrected.mat'))
+
+    # path_gt = folder + '/' + 'Pavia_gt.mat'
+    path_gt = os.path.join(folder, os.path.join('salinas', 'Salinas_gt.mat'))
+
+    X = sio.loadmat(path_data)['salinas_corrected']
+    y = sio.loadmat(path_gt)['salinas_gt']
+elif dataset_name == 'KSC':
+    # path_data = folder + '/' + 'Pavia.mat'
+    path_data = os.path.join(folder, os.path.join('KSC', 'KSC.mat'))
+
+    # path_gt = folder + '/' + 'Pavia_gt.mat'
+    path_gt = os.path.join(folder, os.path.join('KSC', 'KSC_gt.mat'))
+
+    X = sio.loadmat(path_data)['KSC']
+    y = sio.loadmat(path_gt)['KSC_gt']
 elif dataset_name == 'yumi':
     # path_data = folder + '/' + 'yumidata_new.mat'
     path_data = os.path.join(folder, os.path.join('yumi', 'yumidata_new.mat'))
@@ -221,7 +239,8 @@ if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=22)
+# netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=23)
+netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=23)
 
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
@@ -403,11 +422,11 @@ for epoch in range(1, opt.niter + 1):
                 C = confusion_matrix(all_target, all_Label)
                 print(classification_report(all_target, all_Label))
             C = C[:num_class, :num_class]
-            # np.save('c.npy', C)
+            np.save('c.npy', C)
         if best_acc > 95:
             train_generator = False
         # np.save('c.npy', C)
-        # print(C)
+        print(C)
         k = kappa(C, np.shape(C)[0])
         AA_ACC = np.diag(C) / np.sum(C, 1)
         AA = np.mean(AA_ACC, 0)

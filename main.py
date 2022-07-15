@@ -11,6 +11,7 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
 
 from utils import applyPCA, kappa, test, flip, padWithZeros, createImageCubes, splitTrainTestSet
 from datasets import TrainDS, TestDS
@@ -65,6 +66,32 @@ X = data1['indian_pines_corrected']
 matfn2 = 'D:\RocZhang\data\IndianPines\Indian_pines_gt.mat'
 data2 = sio.loadmat(matfn2)
 y = data2['indian_pines_gt']
+
+
+# matfn1 = 'D:\RocZhang\data\Botswana\Botswana.mat'
+# data1 = sio.loadmat(matfn1)
+# X = data1['Botswana']
+# matfn2 = 'D:\RocZhang\data\Botswana\Botswana_gt.mat'
+# data2 = sio.loadmat(matfn2)
+# y = data2['Botswana_gt']
+
+
+
+# matfn1 = 'D:\RocZhang\data\PaviaC\Pavia.mat'
+# data1 = sio.loadmat(matfn1)
+# X = data1['pavia']
+# matfn2 = 'D:\RocZhang\data\PaviaC\Pavia_gt.mat'
+# data2 = sio.loadmat(matfn2)
+# y = data2['pavia_gt']
+
+# matfn1 = 'D:\RocZhang\data\Salinas\Salinas_corrected.mat'
+# data1 = sio.loadmat(matfn1)
+# X = data1['salinas_corrected']
+# matfn2 = 'D:\RocZhang\data\Salinas\Salinas_gt.mat'
+# data2 = sio.loadmat(matfn2)
+# y = data2['salinas_gt']
+
+
 
 
 # test_ratio = 0.90
@@ -290,9 +317,9 @@ for epoch in range(1, opt.niter + 1):
         # 这里将生成的噪声和真实类别进行计算损失，为了使得生成的图像更加接近真实图像。
         c_errG = c_criterion(c_output, c_label)
         errG = c_errG
-        errG.backward()
+        # errG.backward()
         D_G_z2 = c_output.data.mean()
-        optimizerG.step()
+        # optimizerG.step()
         right += correct
         # print('begin spout!')
 
@@ -345,8 +372,10 @@ for epoch in range(1, opt.niter + 1):
         # C = confusion_matrix(target.data.cpu().numpy(), pred.cpu().numpy())
         if opt.cuda:
             C = confusion_matrix([i.cpu() for i in all_target], [i.cpu() for i in all_Label])
+            print(classification_report([i.cpu() for i in all_target], [i.cpu() for i in all_Label]))
         else:
             C = confusion_matrix(all_target, all_Label)
+            print(classification_report(all_target, all_Label))
         C = C[:num_class, :num_class]
         # np.save('c.npy', C)
         print(C)
