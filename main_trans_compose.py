@@ -15,7 +15,7 @@ from sklearn.metrics import classification_report
 
 from utils import applyPCA, kappa, test, flip, getData
 from datasets import TrainDS, TestDS
-from model_new import netD, netG
+from model_new import ADGANTransformer as netD, netG
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=0)
@@ -172,7 +172,7 @@ if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
-netD = netD(ndf, nc, nb_label)
+netD = netD(img_size=64, in_chans=nc, num_classes=nb_label + 1, window_size=8, patch_size=23)
 
 if opt.netD != '':
     netD.load_state_dict(torch.load(opt.netD))
