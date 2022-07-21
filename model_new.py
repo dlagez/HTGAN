@@ -722,9 +722,10 @@ class ADGANTransformer(nn.Module):
         self.BatchNorm3 = nn.BatchNorm2d(ndf * 4)
         self.conv4 = nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False)
         self.BatchNorm4 = nn.BatchNorm2d(ndf * 8)
-        self.conv5 = nn.Conv2d(ndf * 8, 192, 4, 1, 0, bias=False)
+        self.conv5 = nn.Conv2d(ndf * 8, ndf * 2, 4, 1, 0, bias=False)
         #self.disc_linear = nn.Linear(ndf * 2, 1)
-        self.aux_linear = nn.Linear(192 * 2, num_classes)
+        self.linear = nn.Linear(192, num_classes)
+        self.aux_linear = nn.Linear(ndf * 2 + num_classes, num_classes)
         self.softmax = nn.LogSoftmax(dim=-1)
         #self.sigmoid = nn.Sigmoid()
         self.ndf = ndf
@@ -764,6 +765,7 @@ class ADGANTransformer(nn.Module):
     def forward(self, input):
         # swin transformer
         x_s = self.forward_features(input)
+        x_s = self.linear(x_s)
         # x = self.head(x)
 
         # hd
@@ -785,7 +787,7 @@ class ADGANTransformer(nn.Module):
         x = self.LeakyReLU(x)
 
         x = self.conv5(x)
-        x = x.view(-1, 192)
+        x = x.view(-1, self.ndf * 2)
         
         x = torch.cat((x, x_s), 1)
         

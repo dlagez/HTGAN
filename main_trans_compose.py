@@ -12,7 +12,7 @@ import torch.utils.data
 from torch.autograd import Variable
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import classification_report
-
+from collections import Counter
 from utils import applyPCA, kappa, test, flip, getData
 from datasets import TrainDS, TestDS
 from model_new import ADGANTransformer as netD, netG
@@ -107,7 +107,7 @@ nSample = np.size(Row)
 RandPerm = np.random.permutation(nSample)  # 洗牌，返回随机值
 
 
-nTrain = 2000
+nTrain = 1000
 nTest = nSample - nTrain
 imdb = {}
 imdb['datas'] = np.zeros([2 * HalfWidth, 2 * HalfWidth, nBand, nTrain + nTest], dtype=np.float32)  # 64， 64，3，10176
@@ -133,10 +133,16 @@ Xtrain = imdb['datas'][:, :, :, :nTrain]  # 取两千个作为训练集
 ytrain = imdb['Labels'][:nTrain]  # 取两千个作为训练集
 print('Xtrain :', Xtrain.shape)
 print('yTrain:', ytrain.shape)
+
+ytrain_counter = Counter(ytrain)
+print(ytrain_counter)
+
 Xtest = imdb['datas']  # 所有的数据作为测试集
 ytest = imdb['Labels']  # 所有的数据作为测试集
 print('Xtest :', Xtest.shape)
 print('ytest:', ytest.shape)
+ytest_counter = Counter(ytest)
+print(ytest_counter)
 """
 Xtrain=Xtrain.reshape(-1,patch_size,patch_size,pca_components)
 Xtest=Xtest.reshape(-1,patch_size,patch_size,pca_components)

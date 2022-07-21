@@ -110,6 +110,15 @@ def getData(dataset_name, folder):
 
         X = sio.loadmat(path_data)['pavia']
         y = sio.loadmat(path_gt)['pavia_gt']
+    elif dataset_name == 'PaviaU':
+        # path_data = folder + '/' + 'Pavia.mat'
+        path_data = os.path.join(folder, os.path.join('PaviaU', 'PaviaU.mat'))
+
+        # path_gt = folder + '/' + 'Pavia_gt.mat'
+        path_gt = os.path.join(folder, os.path.join('PaviaU', 'PaviaU_gt.mat'))
+
+        X = sio.loadmat(path_data)['paviaU']
+        y = sio.loadmat(path_gt)['paviaU_gt']
     elif dataset_name == 'Salinas':
         # path_data = folder + '/' + 'Pavia.mat'
         path_data = os.path.join(folder, os.path.join('salinas', 'Salinas_corrected.mat'))
